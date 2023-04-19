@@ -73,4 +73,4 @@ where `[...]` denotes that data is stored at that attribute. Importantly, the se
 
 `modisco report -i modisco_results.h5 -o report/ -s report/ -m motifs.txt`
 
-This command will take the results from the tfmodisco-lite run, as well as a reference database of motifs to compare the extracted patterns to, and generate a HTML report like the one seen above. Each pattern that is extracted by tfmodisco-lite is compared against the database of motifs using [TOMTOM](https://meme-suite.org/meme/tools/tomtom) to match them with prior knowledge.
+This command will take the results from the tfmodisco-lite run, as well as a reference database of motifs to compare the extracted patterns to, and generate a HTML report like the one seen above. Each pattern that is extracted by tfmodisco-lite is compared against the database of motifs using the [TOMTOM](https://meme-suite.org/meme/tools/tomtom) CLI executable to match them with prior knowledge. The TOMTOM executable can be installed using the instructions from [here](https://meme-suite.org/meme/doc/install.html?man_type=web), or through conda via `conda install -c bioconda meme`.
