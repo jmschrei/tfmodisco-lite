@@ -185,38 +185,44 @@ def write_meme_from_h5(filename: os.PathLike, datatype: util.MemeDataType, outpu
 	)
 
 	with h5py.File(filename, 'r') as grp:
-		for (name, datasets) in grp['pos_patterns'].items():
+		for strand_dir in ['pos', 'neg']:
 
-			probability_matrix = None
-			if datatype == util.MemeDataType.PFM:
-				probability_matrix = datasets['sequence'][:] / np.sum(datasets['sequence'][:], axis=1, keepdims=True)
-			elif datatype == util.MemeDataType.CWM:
-				probability_matrix = datasets['contrib_scores'][:]
-			elif datatype == util.MemeDataType.hCWM:
-				probability_matrix = datasets['hypothetical_contribs'][:]
-			elif datatype == util.MemeDataType.CWM_PFM:
-				# Softmax version of CWM.
-				probability_matrix = scipy.special.softmax(datasets['contrib_scores'][:], axis=1)
-			elif datatype == util.MemeDataType.hCWM_PFM:
-				# Softmax version of hCWM.
-				probability_matrix = scipy.special.softmax(datasets['hypothetical_contribs'][:], axis=1)
-			else:
-				raise ValueError("Unknown datatype: {}".format(datatype))
+			pattern_group = f'{strand_dir}_patterns'
+			if pattern_group not in grp:
+				continue
 
-			motif = meme_writer.MEMEWriterMotif(
-						name=name,
-						probability_matrix=probability_matrix,
-						source_sites=1,
-						alphabet=alphabet,
-						alphabet_length=4)
+			for (name, datasets) in grp[pattern_group].items():
 
-			writer.add_motif(motif)
-	
-	new_output_filename = output_filename
-	if output_filename is None:
-		file_without_extension = os.path.splitext(filename)[0]
-		new_output_filename = f'{file_without_extension}.{datatype.name}.meme'
-	writer.write(new_output_filename)
+				probability_matrix = None
+				if datatype == util.MemeDataType.PFM:
+					probability_matrix = datasets['sequence'][:] / np.sum(datasets['sequence'][:], axis=1, keepdims=True)
+				elif datatype == util.MemeDataType.CWM:
+					probability_matrix = datasets['contrib_scores'][:]
+				elif datatype == util.MemeDataType.hCWM:
+					probability_matrix = datasets['hypothetical_contribs'][:]
+				elif datatype == util.MemeDataType.CWM_PFM:
+					# Softmax version of CWM.
+					probability_matrix = scipy.special.softmax(datasets['contrib_scores'][:], axis=1)
+				elif datatype == util.MemeDataType.hCWM_PFM:
+					# Softmax version of hCWM.
+					probability_matrix = scipy.special.softmax(datasets['hypothetical_contribs'][:], axis=1)
+				else:
+					raise ValueError("Unknown datatype: {}".format(datatype))
+
+				motif = meme_writer.MEMEWriterMotif(
+							name=name,
+							probability_matrix=probability_matrix,
+							source_sites=1,
+							alphabet=alphabet,
+							alphabet_length=4)
+
+				writer.add_motif(motif)
+		
+		new_output_filename = output_filename
+		if output_filename is None:
+			file_without_extension = os.path.splitext(filename)[0]
+			new_output_filename = f'{file_without_extension}.{datatype.name}.meme'
+		writer.write(new_output_filename)
 
 
 def convert_new_to_old(new_format_filename, old_format_filename):
