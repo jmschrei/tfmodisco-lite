@@ -93,8 +93,10 @@ def _extract_gkmers(X, min_k, max_k, max_gap, max_len, max_entries):
 
 		idxs = np.argsort(-np.abs(scores_), kind='mergesort')[:max_entries]
 
-		keys[xi] = keys_[idxs]
-		scores[xi] = scores_[idxs]
+		# in case there are less kmers than max_entries
+		n_kmer = len(idxs)
+		keys[xi, :n_kmer] = keys_[idxs]
+		scores[xi, :n_kmer] = scores_[idxs]
 
 	return keys, scores
 
