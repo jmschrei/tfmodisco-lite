@@ -81,13 +81,14 @@ def _align_patterns(parent_pattern, child_pattern, metric, min_overlap,
 	best_crossmetric, best_crossmetric_argmax = metric(fwd_data_child, 
 		fwd_data_parent, min_overlap).squeeze()
 
-	best_crossmetric_rev, best_crossmetric_argmax_rev = metric(rev_data_child, 
-		fwd_data_parent, min_overlap).squeeze()
+	# best_crossmetric_rev, best_crossmetric_argmax_rev = metric(rev_data_child, 
+	# 	fwd_data_parent, min_overlap).squeeze()
 
-	if best_crossmetric_rev > best_crossmetric:
-		return int(best_crossmetric_argmax_rev), True, best_crossmetric_rev
-	else:
-		return int(best_crossmetric_argmax), False, best_crossmetric
+	# if best_crossmetric_rev > best_crossmetric:
+	# 	return int(best_crossmetric_argmax_rev), True, best_crossmetric_rev
+	# else:
+	# 	return int(best_crossmetric_argmax), False, best_crossmetric
+	return int(best_crossmetric_argmax), False, best_crossmetric
 
 
 def merge_in_seqlets_filledges(parent_pattern, seqlets_to_merge,
