@@ -116,24 +116,29 @@ def l1(X):
 		return X
 	return (X/abs_sum)
 
-def get_2d_data_from_patterns(patterns, transformer='l1', include_hypothetical=True):
+def get_2d_data_from_patterns(patterns, transformer='l1', include_hypothetical=True, revcomp=True):
 	func = l1 if transformer == 'l1' else magnitude
 	tracks = ['hypothetical_contribs', 'contrib_scores']
 	if not include_hypothetical:
 		tracks = tracks[1:]
 
-	all_fwd_data, all_rev_data = [], []
+	all_fwd_data = []
+	all_rev_data = []
 
 	for pattern in patterns:
 		snippets = [getattr(pattern, track) for track in tracks]
 
 		fwd_data = np.concatenate([func(snippet) for snippet in snippets], axis=1)
-		rev_data = np.concatenate([func(snippet[::-1, ::-1]) for snippet in snippets], axis=1)
-
 		all_fwd_data.append(fwd_data)
-		all_rev_data.append(rev_data)
 
-	return np.array(all_fwd_data), np.array(all_rev_data)
+		if revcomp:
+			rev_data = np.concatenate([func(snippet[::-1, ::-1]) for snippet in snippets], axis=1)
+			all_rev_data.append(rev_data)
+
+	if revcomp:
+		return np.array(all_fwd_data), np.array(all_rev_data)
+	else:
+		return np.array(all_fwd_data)
 
 
 def calculate_window_offsets(center: int, window_size: int) -> tuple:
