@@ -44,7 +44,7 @@ def _sparse_vv_dot(X_data, X_indices, X_indptr, Y_data, Y_indices, Y_indptr, i, 
 	return dot
 
 @njit(parallel=True)
-def _sparse_mm_dot(X_data, X_indices, X_indptr, Y_data, Y_indices, Y_indptr, k):
+def _sparse_mm_dot_revcomp(X_data, X_indices, X_indptr, Y_data, Y_indices, Y_indptr, k):
 	n_rows = len(Y_indptr) - 1
 
 	neighbors = np.empty((n_rows, k), dtype='int32')
@@ -64,35 +64,65 @@ def _sparse_mm_dot(X_data, X_indices, X_indptr, Y_data, Y_indices, Y_indptr, k):
 
 	return sims, neighbors
 
+@njit(parallel=True)
+def _sparse_mm_dot(X_data, X_indices, X_indptr, k):
+	n_rows = len(X_indptr) - 1
+
+	neighbors = np.empty((n_rows, k), dtype='int32')
+	sims = np.empty((n_rows, k), dtype='float64')
+
+	for i in prange(n_rows):
+		dot = np.zeros(n_rows, dtype='float64')
+
+		for j in range(n_rows):
+			xdot = _sparse_vv_dot(X_data, X_indices, X_indptr, X_data, X_indices, X_indptr, i, j)
+			dot[j] = xdot
+
+		dot_argsort = np.argsort(-dot, kind='mergesort')[:k]
+		neighbors[i] = dot_argsort
+		sims[i] = dot[dot_argsort]
+
+	return sims, neighbors
+
 def cosine_similarity_from_seqlets(seqlets, n_neighbors, sign, topn=20, 
 	min_k=4, max_k=6, max_gap=15, max_len=15, max_entries=500, 
-	alphabet_size=4):
+	alphabet_size=4, revcomp=True):
 
 	X_fwd = gapped_kmer._seqlet_to_gkmers(seqlets, topn, 
 		min_k, max_k, max_gap, max_len, max_entries, True, sign)
-
-	X_bwd = gapped_kmer._seqlet_to_gkmers(seqlets, topn, min_k, max_k, max_gap, 
-			max_len, max_entries, False, sign)
-
 	X = sklearn.preprocessing.normalize(X_fwd, norm='l2', axis=1)
-	Y = sklearn.preprocessing.normalize(X_bwd, norm='l2', axis=1)
-
 	n, d = X.shape
 	k = min(n_neighbors+1, n)
-	return _sparse_mm_dot(X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, k)
+
+	if revcomp:
+		X_bwd = gapped_kmer._seqlet_to_gkmers(seqlets, topn, min_k, max_k, max_gap, 
+				max_len, max_entries, False, sign)
+		Y = sklearn.preprocessing.normalize(X_bwd, norm='l2', axis=1)
+		return _sparse_mm_dot_revcomp(X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, k)
+	else:
+		return _sparse_mm_dot(X.data, X.indices, X.indptr, k)
 
 
 def jaccard_from_seqlets(seqlets, min_overlap, filter_seqlets=None, 
-	seqlet_neighbors=None):
+	seqlet_neighbors=None, revcomp=True):
 
-	all_fwd_data, all_rev_data = util.get_2d_data_from_patterns(seqlets)
+	if revcomp:
+		all_fwd_data, all_rev_data = util.get_2d_data_from_patterns(seqlets)
 
-	if filter_seqlets is None:
-		filter_seqlets = seqlets
-		filters_all_fwd_data = all_fwd_data
-		filters_all_rev_data = all_rev_data
+		if filter_seqlets is None:
+			filter_seqlets = seqlets
+			filters_all_fwd_data = all_fwd_data
+			filters_all_rev_data = all_rev_data
+		else:
+			filters_all_fwd_data, filters_all_rev_data = util.get_2d_data_from_patterns(filter_seqlets)
+	
 	else:
-		filters_all_fwd_data, filters_all_rev_data = util.get_2d_data_from_patterns(filter_seqlets)
+		all_fwd_data = util.get_2d_data_from_patterns(seqlets, revcomp=False)
+		if filter_seqlets is None:
+			filter_seqlets = seqlets
+			filters_all_fwd_data = all_fwd_data
+		else:
+			filters_all_fwd_data = util.get_2d_data_from_patterns(filter_seqlets, revcomp=False)
 
 	if seqlet_neighbors is None:
 		seqlet_neighbors = [list(range(len(filter_seqlets)))
@@ -104,12 +134,14 @@ def jaccard_from_seqlets(seqlets, min_overlap, filter_seqlets=None,
 		Y=all_fwd_data, min_overlap=min_overlap, func=int, 
 		return_sparse=True)
 
-	affmat_rev = jaccard(seqlet_neighbors=seqlet_neighbors,
-		X=filters_all_rev_data, Y=all_fwd_data,
-		min_overlap=min_overlap, func=int,
-		return_sparse=True) 
-
-	affmat = np.maximum(affmat_fwd, affmat_rev)
+	if revcomp:
+		affmat_rev = jaccard(seqlet_neighbors=seqlet_neighbors,
+			X=filters_all_rev_data, Y=all_fwd_data,
+			min_overlap=min_overlap, func=int,
+			return_sparse=True) 
+		affmat = np.maximum(affmat_fwd, affmat_rev)
+	else:
+		affmat = affmat_fwd
 	return affmat
 
 
