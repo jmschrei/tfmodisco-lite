@@ -21,7 +21,8 @@ class TrackSet(object):
 		self.length = len(one_hot[0])
 
 	def create_seqlets(self, seqlets):
-		for seqlet in seqlets:
+		out_seqlets = []        
+		for i,seqlet in enumerate(seqlets):
 			idx = seqlet.example_idx
 			s, e = seqlet.start, seqlet.end
 
@@ -33,8 +34,11 @@ class TrackSet(object):
 				seqlet.sequence = self.one_hot[idx][s:e]
 				seqlet.contrib_scores = self.contrib_scores[idx][s:e]
 				seqlet.hypothetical_contribs = self.hypothetical_contribs[idx][s:e]				
-
-		return seqlets
+                
+			# verify that seqlet is not at the end of the sequence and has some bp set
+			if seqlet.sequence.sum()>0:
+				out_seqlets.append(seqlet)
+		return out_seqlets
 
 class Seqlet(object):
 	def __init__(self, example_idx, start, end, is_revcomp):
