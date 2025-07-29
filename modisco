@@ -199,7 +199,7 @@ if args.cmd == "motifs":
 
 	if sequences.shape[1] < args.window:
 		raise ValueError("Window ({}) cannot be ".format(args.window) +
-			"longer than the sequences".format(sequences.shape))
+			"longer than the sequences {}".format(sequences.shape[1]))
 
 	sequences = sequences.astype('float32')
 	attributions = attributions.astype('float32')
