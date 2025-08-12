@@ -44,7 +44,7 @@ def _sparse_vv_dot(X_data, X_indices, X_indptr, Y_data, Y_indices, Y_indptr, i, 
 	return dot
 
 @njit(parallel=True)
-def _sparse_mm_dot(X_data, X_indices, X_indptr, Y_data, Y_indices, Y_indptr, k):
+def _sparse_mm_dot(X_data, X_indices, X_indptr, Y_data, Y_indices, Y_indptr, k, stranded=False):
 	n_rows = len(Y_indptr) - 1
 
 	neighbors = np.empty((n_rows, k), dtype='int32')
@@ -55,8 +55,11 @@ def _sparse_mm_dot(X_data, X_indices, X_indptr, Y_data, Y_indices, Y_indptr, k):
 
 		for j in range(n_rows):
 			xdot = _sparse_vv_dot(X_data, X_indices, X_indptr, X_data, X_indices, X_indptr, i, j)
-			ydot = _sparse_vv_dot(X_data, X_indices, X_indptr, Y_data, Y_indices, Y_indptr, i, j)
-			dot[j] = max(xdot, ydot)
+			if stranded:
+				dot[j] = xdot
+			else:
+				ydot = _sparse_vv_dot(X_data, X_indices, X_indptr, Y_data, Y_indices, Y_indptr, i, j)
+				dot[j] = max(xdot, ydot)
 
 		dot_argsort = np.argsort(-dot, kind='mergesort')[:k]
 		neighbors[i] = dot_argsort
@@ -66,7 +69,7 @@ def _sparse_mm_dot(X_data, X_indices, X_indptr, Y_data, Y_indices, Y_indptr, k):
 
 def cosine_similarity_from_seqlets(seqlets, n_neighbors, sign, topn=20, 
 	min_k=4, max_k=6, max_gap=15, max_len=15, max_entries=500, 
-	alphabet_size=4):
+	alphabet_size=4, stranded=False):
 
 	X_fwd = gapped_kmer._seqlet_to_gkmers(seqlets, topn, 
 		min_k, max_k, max_gap, max_len, max_entries, True, sign)
@@ -79,11 +82,10 @@ def cosine_similarity_from_seqlets(seqlets, n_neighbors, sign, topn=20,
 
 	n, d = X.shape
 	k = min(n_neighbors+1, n)
-	return _sparse_mm_dot(X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, k)
+	return _sparse_mm_dot(X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, k, stranded)
 
 
-def jaccard_from_seqlets(seqlets, min_overlap, filter_seqlets=None, 
-	seqlet_neighbors=None):
+def jaccard_from_seqlets(seqlets, min_overlap, filter_seqlets=None, seqlet_neighbors=None, stranded=False):
 
 	all_fwd_data, all_rev_data = util.get_2d_data_from_patterns(seqlets)
 
@@ -104,12 +106,16 @@ def jaccard_from_seqlets(seqlets, min_overlap, filter_seqlets=None,
 		Y=all_fwd_data, min_overlap=min_overlap, func=int, 
 		return_sparse=True)
 
-	affmat_rev = jaccard(seqlet_neighbors=seqlet_neighbors,
-		X=filters_all_rev_data, Y=all_fwd_data,
-		min_overlap=min_overlap, func=int,
-		return_sparse=True) 
+	if stranded:
+		affmat = affmat_fwd
+	else:
+		affmat_rev = jaccard(seqlet_neighbors=seqlet_neighbors,
+			X=filters_all_rev_data, Y=all_fwd_data,
+			min_overlap=min_overlap, func=int,
+			return_sparse=True) 
 
-	affmat = np.maximum(affmat_fwd, affmat_rev)
+		affmat = np.maximum(affmat_fwd, affmat_rev)
+
 	return affmat
 
 
@@ -141,6 +147,7 @@ def jaccard(X, Y, min_overlap=None, seqlet_neighbors=None, func=np.ceil,
 	argmaxs = np.argmax(scores, axis=-1)
 	idxs = np.arange(seqlet_neighbors.shape[1])
 	results = np.zeros((Y.shape[0], seqlet_neighbors.shape[1], 2))
+
 	for i in range(Y.shape[0]):
 		results[i, :, 0] = scores[i][idxs, argmaxs[i]]
 		results[i, :, 1] = argmaxs[i] - n_pad
