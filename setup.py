@@ -27,6 +27,7 @@ setup(
 		'pandas >= 1.4.3',
 		'logomaker >= 0.8',
 		'h5py >= 3.7.0',
-		'memelite'
+		'memelite',
+		'joblib'
 	]
 )
