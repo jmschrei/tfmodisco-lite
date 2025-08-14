@@ -131,6 +131,12 @@ def cli() -> None:
     help="Number of CPU cores to use (-1 for all available).",
 )
 @click.option(
+    "-r",
+    "--stranded",
+    is_flag=True,
+    help="Treat input as stranded so do not add reverse-complement.",
+)
+@click.option(
     "-p",
     "--pattern-type",
     type=click.Choice(["both", "pos", "neg"]),
@@ -154,6 +160,7 @@ def motifs(
     output: str,
     num_cores: int,
     pattern_type: str,
+    stranded: bool,
     verbose: bool,
 ):
     """Run TF-MoDISco and extract the motifs."""
@@ -206,6 +213,7 @@ def motifs(
         n_leiden_runs=n_leiden,
         num_cores=num_cores,
         pattern_type=pattern_type,
+        stranded=stranded,
         verbose=verbose,
     )
     modiscolite.io.save_hdf5(output, pos_patterns, neg_patterns, window)
