@@ -5,6 +5,7 @@
 import numpy as np
 import scipy
 import scipy.sparse
+import numba
 
 import logging
 from collections import OrderedDict
@@ -164,7 +165,8 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 	prob_and_pertrack_sim_dealbreaker_thresholds=[(0.4, 0.75), (0.2,0.8), (0.1, 0.85), (0.0,0.9)],
 	subcluster_perplexity=50, merging_max_seqlets_subsample=300,
 	final_min_cluster_size=20,min_ic_in_window=0.6, min_ic_windowsize=6,
-	ppm_pseudocount=0.001, verbose=False):
+	ppm_pseudocount=0.001, num_cores=-1, verbose=False):
+
 	logger = logging.getLogger("modisco-lite")
 
 	bg_freq = np.mean([seqlet.sequence for seqlet in seqlets], axis=(0, 1)) 
@@ -218,10 +220,11 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 
 		# Step 5: Clustering
 		logger.info(f"- Round {round_idx}: Clustering with Leiden algorithm")
-		cluster_indices = cluster.LeidenCluster(
+		cluster_indices = cluster.LeidenClusterParallel(
 			csr_density_adapted_affmat,
 			n_seeds=n_leiden_runs,
 			n_leiden_iterations=n_leiden_iterations, 
+			n_jobs=num_cores,
 			verbose=verbose)
 
 		del csr_density_adapted_affmat
@@ -293,7 +296,10 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 	prob_and_pertrack_sim_dealbreaker_thresholds=[(0.4, 0.75), (0.2,0.8), (0.1, 0.85), (0.0,0.9)],
 	subcluster_perplexity=50, merging_max_seqlets_subsample=300,
 	final_min_cluster_size=20, min_ic_in_window=0.6, min_ic_windowsize=6,
-	ppm_pseudocount=0.001, verbose=False):
+	ppm_pseudocount=0.001, num_cores=-1, verbose=False):
+
+	if num_cores > 0:
+		numba.set_num_threads(num_cores)
 
 	logger = logging.getLogger("modisco-lite")
 	if verbose:
@@ -364,6 +370,7 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 			min_ic_in_window=min_ic_in_window,
 			min_ic_windowsize=min_ic_windowsize,
 			ppm_pseudocount=ppm_pseudocount, 
+			num_cores=num_cores,
 			verbose=verbose)
 	else:
 		pos_patterns = None
@@ -394,6 +401,7 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 			min_ic_in_window=min_ic_in_window,
 			min_ic_windowsize=min_ic_windowsize,
 			ppm_pseudocount=ppm_pseudocount,
+			num_cores=num_cores,
 			verbose=verbose)
 	else:
 		neg_patterns = None

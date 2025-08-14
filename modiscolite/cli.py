@@ -122,6 +122,14 @@ def cli() -> None:
     show_default=True,
     help="Path to the output HDF5 file.",
 )
+@click.option(
+    "-@",
+    "--num-cores",
+    type=int,
+    default=-1,
+    show_default=True,
+    help="Number of CPU cores to use (-1 for all available).",
+)
 @click.option("-v", "--verbose", is_flag=True)
 def motifs(
     seq_path: str,
@@ -136,6 +144,7 @@ def motifs(
     initial_flank_to_add: int,
     final_flank_to_add: int,
     output: str,
+    num_cores: int,
     verbose: bool,
 ):
     """Run TF-MoDISco and extract the motifs."""
@@ -186,6 +195,7 @@ def motifs(
         final_flank_to_add=final_flank_to_add,
         target_seqlet_fdr=0.05,
         n_leiden_runs=n_leiden,
+        num_cores=num_cores,
         verbose=verbose,
     )
     modiscolite.io.save_hdf5(output, pos_patterns, neg_patterns, window)
