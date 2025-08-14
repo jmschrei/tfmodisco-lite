@@ -3,12 +3,13 @@
 # adapted from code written by Avanti Shrikumar 
 
 import numpy as np
-
 import scipy
 import scipy.sparse
 
+import logging
 from collections import OrderedDict
 from collections import defaultdict
+from tqdm import tqdm
 
 from . import affinitymat
 from . import aggregator
@@ -60,9 +61,9 @@ def _density_adaptation(affmat_nn, seqlet_neighbors, tsne_perplexity):
 
 
 def _filter_patterns(patterns, min_seqlet_support, window_size, 
-	min_ic_in_window, background, ppm_pseudocount):
+	min_ic_in_window, background, ppm_pseudocount, verbose=False):
 	passing_patterns = []
-	for pattern in patterns:
+	for pattern in tqdm(patterns, desc="Filtering patterns:", disable=not verbose):
 		if len(pattern.seqlets) < min_seqlet_support:
 			continue
 
@@ -88,7 +89,7 @@ def _filter_patterns(patterns, min_seqlet_support, window_size,
 
 def _patterns_from_clusters(seqlets, track_set, min_overlap,
 	min_frac, min_num, flank_to_add, window_size, bg_freq, cluster_indices, 
-	track_sign):
+	track_sign, verbose=False):
 
 	seqlet_sort_metric = lambda x: -np.sum(np.abs(x.contrib_scores))
 	num_clusters = max(cluster_indices+1)
@@ -98,7 +99,7 @@ def _patterns_from_clusters(seqlets, track_set, min_overlap,
 		cluster_to_seqlets[idx].append(seqlet)
 
 	patterns = []
-	for i in range(num_clusters):
+	for i in tqdm(range(num_clusters), desc="Generating patterns from clusters:", disable=not verbose):
 		sorted_seqlets = sorted(cluster_to_seqlets[i], key=seqlet_sort_metric) 
 		pattern = core.SeqletSet([sorted_seqlets[0]])
 
@@ -163,7 +164,8 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 	prob_and_pertrack_sim_dealbreaker_thresholds=[(0.4, 0.75), (0.2,0.8), (0.1, 0.85), (0.0,0.9)],
 	subcluster_perplexity=50, merging_max_seqlets_subsample=300,
 	final_min_cluster_size=20,min_ic_in_window=0.6, min_ic_windowsize=6,
-	ppm_pseudocount=0.001):
+	ppm_pseudocount=0.001, verbose=False):
+	logger = logging.getLogger("modisco-lite")
 
 	bg_freq = np.mean([seqlet.sequence for seqlet in seqlets], axis=(0, 1)) 
 
@@ -177,15 +179,23 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 			return None
 
 		# Step 1: Generate coarse resolution
+		logger.info(
+			f"- Round {round_idx}: Generating coarse resolution affinity matrix for {len(seqlets)} seqlets"
+		)
 		coarse_affmat_nn, seqlet_neighbors = affinitymat.cosine_similarity_from_seqlets(
 			seqlets=seqlets, n_neighbors=nearest_neighbors_to_compute, sign=track_signs)
 
 		# Step 2: Generate fine representation
+		logger.info(
+			f"- Round {round_idx}: Generating fine resolution affinity matrix for "
+			f"{len(seqlets)} seqlets and {len(seqlet_neighbors)} neighbors"
+		)
 		fine_affmat_nn = affinitymat.jaccard_from_seqlets(
 			seqlets=seqlets, seqlet_neighbors=seqlet_neighbors,
 			min_overlap=min_overlap_while_sliding)
 
 		if round_idx == 0:
+			logger.info(f"- Round {round_idx}: Filtering seqlets by correlation")
 			filtered_seqlets, seqlet_neighbors, filtered_affmat_nn = (
 				_filter_by_correlation(seqlets, seqlet_neighbors, 
 					coarse_affmat_nn, fine_affmat_nn, 
@@ -199,6 +209,7 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 		del seqlets
 
 		# Step 4: Density adaptation
+		logger.info(f"- Round {round_idx}: Density adaptation")
 		csr_density_adapted_affmat = _density_adaptation(
 			filtered_affmat_nn, seqlet_neighbors, tsne_perplexity)
 
@@ -206,13 +217,16 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 		del seqlet_neighbors
 
 		# Step 5: Clustering
+		logger.info(f"- Round {round_idx}: Clustering with Leiden algorithm")
 		cluster_indices = cluster.LeidenCluster(
 			csr_density_adapted_affmat,
 			n_seeds=n_leiden_runs,
-			n_leiden_iterations=n_leiden_iterations)
+			n_leiden_iterations=n_leiden_iterations, 
+			verbose=verbose)
 
 		del csr_density_adapted_affmat
 
+		logger.info(f"- Round {round_idx}: Generating patterns from clusters")
 		patterns = _patterns_from_clusters(filtered_seqlets, 
 			track_set=track_set, 
 			min_overlap=min_overlap_while_sliding, 
@@ -230,6 +244,7 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 
 	del seqlets
 
+	logger.info("Detecting spurious merging of patterns")
 	merged_patterns, pattern_merge_hierarchy = aggregator._detect_spurious_merging(
 		patterns=patterns, track_set=track_set, perplexity=subcluster_perplexity, 
 		min_in_subcluster=max(final_min_cluster_size, subcluster_perplexity), 
@@ -240,18 +255,19 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 		flank_to_add=initial_flank_to_add,
 		window_size=trim_to_window_size, bg_freq=bg_freq,
 		max_seqlets_subsample=merging_max_seqlets_subsample,
-		n_seeds=n_leiden_runs)
+		n_seeds=n_leiden_runs, verbose=verbose)
 
 	#Now start merging patterns 
+	logger.info("Filtering and merging patterns")
 	merged_patterns = sorted(merged_patterns, key=lambda x: -len(x.seqlets))
 
 	patterns = _filter_patterns(merged_patterns, 
 		min_seqlet_support=final_min_cluster_size, 
 		window_size=min_ic_windowsize, min_ic_in_window=min_ic_in_window, 
-		background=bg_freq, ppm_pseudocount=ppm_pseudocount)
+		background=bg_freq, ppm_pseudocount=ppm_pseudocount, verbose=verbose)
 
 	#apply subclustering procedure on the final patterns
-	for patternidx, pattern in enumerate(patterns):
+	for patternidx, pattern in enumerate(tqdm(patterns, desc="Subclustering patterns:", disable=not verbose)):
 		pattern = aggregator._expand_seqlets_to_fill_pattern(pattern, track_set, 
 			left_flank_to_add=final_flank_to_add,
 			right_flank_to_add=final_flank_to_add)
@@ -278,6 +294,19 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 	subcluster_perplexity=50, merging_max_seqlets_subsample=300,
 	final_min_cluster_size=20, min_ic_in_window=0.6, min_ic_windowsize=6,
 	ppm_pseudocount=0.001, verbose=False):
+
+	logger = logging.getLogger("modisco-lite")
+	if verbose:
+		handler = logging.StreamHandler()
+		formatter = logging.Formatter(
+			"%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+		)
+		handler.setFormatter(formatter)
+		logger.addHandler(handler)
+		logger.setLevel(logging.DEBUG)
+
+	from . import __version__
+	logger.info(f"Running TFMoDISco version {__version__}")
 
 	contrib_scores = np.multiply(one_hot, hypothetical_contribs)
 
@@ -311,8 +340,7 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 
 	if len(pos_seqlets) > min_metacluster_size:
 		pos_seqlets = pos_seqlets[:max_seqlets_per_metacluster]
-		if verbose:
-			print("Using {} positive seqlets".format(len(pos_seqlets)))
+		logger.info(f"- Using {len(pos_seqlets)} positive seqlets")
 
 		pos_patterns = seqlets_to_patterns(seqlets=pos_seqlets,
 			track_set=track_set, 
@@ -335,14 +363,14 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 			final_min_cluster_size=final_min_cluster_size,
 			min_ic_in_window=min_ic_in_window,
 			min_ic_windowsize=min_ic_windowsize,
-			ppm_pseudocount=ppm_pseudocount)
+			ppm_pseudocount=ppm_pseudocount, 
+			verbose=verbose)
 	else:
 		pos_patterns = None
 
 	if len(neg_seqlets) > min_metacluster_size:
 		neg_seqlets = neg_seqlets[:max_seqlets_per_metacluster]
-		if verbose:
-			print("Extracted {} negative seqlets".format(len(neg_seqlets)))
+		logger.info(f"- Using {len(neg_seqlets)} negative seqlets")
 
 		neg_patterns = seqlets_to_patterns(seqlets=neg_seqlets,
 			track_set=track_set, 
@@ -365,7 +393,8 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 			final_min_cluster_size=final_min_cluster_size,
 			min_ic_in_window=min_ic_in_window,
 			min_ic_windowsize=min_ic_windowsize,
-			ppm_pseudocount=ppm_pseudocount)
+			ppm_pseudocount=ppm_pseudocount,
+			verbose=verbose)
 	else:
 		neg_patterns = None
 

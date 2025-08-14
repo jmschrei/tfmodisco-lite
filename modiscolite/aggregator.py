@@ -9,6 +9,7 @@ from . import core
 from . import util
 
 from collections import OrderedDict
+from tqdm import tqdm
 from sklearn.metrics import roc_auc_score
 
 
@@ -173,10 +174,10 @@ def _detect_spurious_merging(patterns, track_set, perplexity,
 	min_in_subcluster, min_overlap, prob_and_pertrack_sim_merge_thresholds,
 	prob_and_pertrack_sim_dealbreaker_thresholds,
 	min_frac, min_num, flank_to_add, window_size, bg_freq,
-	n_seeds, max_seqlets_subsample=1000):
+	n_seeds, max_seqlets_subsample=1000, verbose=False):
 
 	to_return = []
-	for i, pattern in enumerate(patterns):
+	for i, pattern in enumerate(tqdm(patterns, desc="Detecting spurious merging of patterns:", disable=not verbose)):
 		if len(pattern.seqlets) > min_in_subcluster:
 			pattern.compute_subpatterns(perplexity=perplexity, n_seeds=n_seeds)
 

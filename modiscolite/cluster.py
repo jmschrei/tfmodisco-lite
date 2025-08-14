@@ -5,8 +5,11 @@
 import leidenalg
 import numpy as np
 import igraph as ig
+from tqdm import tqdm
+import logging
 
-def LeidenCluster(affinity_mat, n_seeds=2, n_leiden_iterations=-1):
+
+def LeidenCluster(affinity_mat, n_seeds=2, n_leiden_iterations=-1, verbose=False):
     n_vertices = affinity_mat.shape[0]
     n_cols = affinity_mat.indptr
     sources = np.concatenate([np.ones(n_cols[i+1] - n_cols[i], dtype='int32') * i for i in range(n_vertices)])
@@ -18,7 +21,9 @@ def LeidenCluster(affinity_mat, n_seeds=2, n_leiden_iterations=-1):
     best_clustering = None
     best_quality = None
 
-    for seed in range(1, n_seeds+1):
+    logger = logging.getLogger("modisco-lite")
+
+    for seed in tqdm(range(1, n_seeds+1), desc="Leiden clustering:"):
         partition = leidenalg.find_partition(
             graph=g,
             partition_type=leidenalg.ModularityVertexPartition,
@@ -30,6 +35,9 @@ def LeidenCluster(affinity_mat, n_seeds=2, n_leiden_iterations=-1):
         quality = np.array(partition.quality())
         membership = np.array(partition.membership)
         
+        if verbose:
+            logger.info(f"Leiden clustering quality for seed {seed}: {quality}")
+
         if best_quality is None or quality > best_quality:
             best_quality = quality
             best_clustering = membership

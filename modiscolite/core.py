@@ -151,7 +151,7 @@ class SeqletSet():
 
 		#Do Leiden clustering
 		self.subclusters = cluster.LeidenCluster(sp_density_adapted_affmat,
-			n_seeds=n_seeds, n_leiden_iterations=n_iterations) 
+			n_seeds=n_seeds, n_leiden_iterations=n_iterations, verbose=False) 
 
 		#this method assumes all the seqlets have been expanded so they
 		# all start at 0

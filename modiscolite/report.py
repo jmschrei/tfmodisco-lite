@@ -13,6 +13,7 @@ from matplotlib import pyplot as plt
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from pathlib import Path
 from typing import List, Union
@@ -107,7 +108,7 @@ def generate_tomtom_dataframe(modisco_h5py: os.PathLike,
 		output_dir: os.PathLike, meme_motif_db: Union[os.PathLike, None],
 		is_writing_tomtom_matrix: bool, pattern_groups: List[str], 
 		top_n_matches=3, tomtom_exec: str="tomtom", trim_threshold=0.3,
-		trim_min_length=3):
+		trim_min_length=3, verbose=False):
 
 	tomtom_results = {}
 
@@ -123,7 +124,7 @@ def generate_tomtom_dataframe(modisco_h5py: os.PathLike,
 			metacluster = modisco_results[contribution_dir_name]
 			key = lambda x: int(x[0].split("_")[-1])
 
-			for idx, (_, pattern) in enumerate(sorted(metacluster.items(), key=key)):
+			for idx, (_, pattern) in enumerate(sorted(tqdm(metacluster.items(), desc=f"Matching patterns to motifs: {contribution_dir_name}", disable=not verbose), key=key)):
    				# Rest of your code goes here
 
 				ppm = np.array(pattern['sequence'][:])
@@ -159,7 +160,8 @@ def tomtomlite_dataframe(
 	pattern_groups: List[str], 
 	top_n_matches=3, 
 	trim_threshold=0.3,
-	trim_min_length=3):
+	trim_min_length=3,
+	verbose=False):
 	"""Use tomtom-lite to match patterns to a motif database."""
 
 	tomtom_results = {}
@@ -170,7 +172,7 @@ def tomtomlite_dataframe(
 
 	ppms = []
 	with h5py.File(modisco_h5py, 'r') as modisco_results:
-		for contribution_dir_name in pattern_groups:
+		for contribution_dir_name in tqdm(pattern_groups, desc="Extracting motifs:", disable=not verbose):
 			if contribution_dir_name not in modisco_results.keys():
 				continue
 
@@ -195,7 +197,7 @@ def tomtomlite_dataframe(
 	p, scores, offsets, overlaps, strands, idxs = tomtom(ppms, target_pwms, 
 		n_nearest=top_n_matches)
 
-	for i in range(idxs.shape[0]):
+	for i in tqdm(range(idxs.shape[0]), desc="Matching motifs to patterns:", disable=not verbose):
 		for j in range(top_n_matches):
 			target_name = target_names[int(idxs[i, j])].strip()
 			pval = p[i, j]
@@ -249,7 +251,7 @@ def create_modisco_logos(modisco_h5py: os.PathLike, modisco_logo_dir, trim_thres
 
 		metacluster = modisco_results[name]
 		key = lambda x: int(x[0].split("_")[-1])
-		for pattern_name, pattern in sorted(metacluster.items(), key=key):
+		for pattern_name, pattern in sorted(tqdm(metacluster.items(), desc=f"Creating modisco logos for {name}:", disable=not verbose), key=key):
 			tag = '{}.{}'.format(name, pattern_name)
 			tags.append(tag)
 
@@ -279,7 +281,7 @@ def create_modisco_logos(modisco_h5py: os.PathLike, modisco_logo_dir, trim_thres
 
 def report_motifs(modisco_h5py: Path, output_dir: os.PathLike, img_path_suffix: os.PathLike, 
 	meme_motif_db: Union[os.PathLike, None], is_writing_tomtom_matrix: bool, top_n_matches=3,
-	trim_threshold=0.3, trim_min_length=3, ttl=False):
+	trim_threshold=0.3, trim_min_length=3, ttl=False, verbose=False):
 
 	if not os.path.isdir(output_dir):
 		os.mkdir(output_dir)
@@ -290,12 +292,12 @@ def report_motifs(modisco_h5py: Path, output_dir: os.PathLike, img_path_suffix: 
 
 	pattern_groups = ['pos_patterns', 'neg_patterns']
 
-	create_modisco_logos(modisco_h5py, modisco_logo_dir, trim_threshold, pattern_groups)
+	create_modisco_logos(modisco_h5py, modisco_logo_dir, trim_threshold, pattern_groups, verbose=verbose)
 
 	results = {'pattern': [], 'num_seqlets': [], 'modisco_cwm_fwd': [], 'modisco_cwm_rev': []}
 
 	with h5py.File(modisco_h5py, 'r') as modisco_results:
-		for name in pattern_groups:
+		for name in tqdm(pattern_groups, desc="Extracting modisco logos:", disable=not verbose):
 			if name not in modisco_results.keys():
 				continue
 
@@ -321,7 +323,7 @@ def report_motifs(modisco_h5py: Path, output_dir: os.PathLike, img_path_suffix: 
 		if ttl:
 			tomtom_df = tomtomlite_dataframe(modisco_h5py, output_dir, meme_motif_db,
 				top_n_matches=top_n_matches, pattern_groups=pattern_groups, 
-				trim_threshold=trim_threshold, trim_min_length=trim_min_length)
+				trim_threshold=trim_threshold, trim_min_length=trim_min_length, verbose=verbose)
 		else:
 			motifs = {key.split()[0]: value for key, value in motifs.items()}
 			
@@ -329,7 +331,7 @@ def report_motifs(modisco_h5py: Path, output_dir: os.PathLike, img_path_suffix: 
 				is_writing_tomtom_matrix,
 				top_n_matches=top_n_matches, tomtom_exec='tomtom', 
 				pattern_groups=pattern_groups, trim_threshold=trim_threshold,
-				trim_min_length=trim_min_length)
+				trim_min_length=trim_min_length, verbose=verbose)
 
 		patterns_df = pandas.concat([patterns_df, tomtom_df], axis=1)
 
