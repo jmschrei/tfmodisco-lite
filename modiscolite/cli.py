@@ -253,8 +253,17 @@ def motifs(
     is_flag=True,
     help="Whether to use tomtom-lite when mapping patterns to motifs. Note that this also changes the distance function from correlation to Euclidean distance, and so the best motif may differ when there are many similar versions.",
 )
+@click.option(
+    "-@",
+    "--num-cores",
+    type=int,
+    default=-1,
+    show_default=True,
+    help="Number of CPU cores to use (-1 for all available).",
+)
+@click.option("-v", "--verbose", is_flag=True)
 def report(
-    h5_path, output, write_tomtom, suffix, meme_db, n_matches, lite
+    h5_path, output, write_tomtom, suffix, meme_db, n_matches, lite, num_cores, verbose
 ):
     """Generate an interactive HTML motif report."""
     modiscolite.report.report_motifs(
@@ -265,6 +274,8 @@ def report(
         is_writing_tomtom_matrix=write_tomtom,
         top_n_matches=n_matches,
         ttl=lite,
+        num_cores=num_cores,
+        verbose=verbose
     )
 
 

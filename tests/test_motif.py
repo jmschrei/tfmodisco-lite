@@ -178,3 +178,5 @@ def test_modisco_motif(data_ohe_hyps, tmp_path):
             [0.4375 , 0.21875, 0.09375, 0.25   ],
             [0.125  , 0.28125, 0.3125 , 0.28125]
         ]), atol=1e-3, rtol=1e-3)
+
+        
