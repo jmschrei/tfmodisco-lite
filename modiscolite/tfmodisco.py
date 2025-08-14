@@ -296,7 +296,10 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 	prob_and_pertrack_sim_dealbreaker_thresholds=[(0.4, 0.75), (0.2,0.8), (0.1, 0.85), (0.0,0.9)],
 	subcluster_perplexity=50, merging_max_seqlets_subsample=300,
 	final_min_cluster_size=20, min_ic_in_window=0.6, min_ic_windowsize=6,
-	ppm_pseudocount=0.001, num_cores=-1, verbose=False):
+	ppm_pseudocount=0.001, 	
+	pattern_type="both",  # "both", "pos", or "neg", 
+	num_cores=-1, 
+	verbose=False):
 
 	if num_cores > 0:
 		numba.set_num_threads(num_cores)
@@ -344,7 +347,7 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 
 	del seqlets
 
-	if len(pos_seqlets) > min_metacluster_size:
+	if (pattern_type in ("both", "pos")) and (len(pos_seqlets) > min_metacluster_size):
 		pos_seqlets = pos_seqlets[:max_seqlets_per_metacluster]
 		logger.info(f"- Using {len(pos_seqlets)} positive seqlets")
 
@@ -375,7 +378,7 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 	else:
 		pos_patterns = None
 
-	if len(neg_seqlets) > min_metacluster_size:
+	if (pattern_type in ("both", "neg")) and (len(neg_seqlets) > min_metacluster_size):
 		neg_seqlets = neg_seqlets[:max_seqlets_per_metacluster]
 		logger.info(f"- Using {len(neg_seqlets)} negative seqlets")
 

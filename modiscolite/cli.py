@@ -130,6 +130,14 @@ def cli() -> None:
     show_default=True,
     help="Number of CPU cores to use (-1 for all available).",
 )
+@click.option(
+    "-p",
+    "--pattern-type",
+    type=click.Choice(["both", "pos", "neg"]),
+    default="both",
+    show_default=True,
+    help="Which pattern signs to compute: `both`, `pos`, or `neg`. Default is `both`.",
+)
 @click.option("-v", "--verbose", is_flag=True)
 def motifs(
     seq_path: str,
@@ -145,6 +153,7 @@ def motifs(
     final_flank_to_add: int,
     output: str,
     num_cores: int,
+    pattern_type: str,
     verbose: bool,
 ):
     """Run TF-MoDISco and extract the motifs."""
@@ -196,6 +205,7 @@ def motifs(
         target_seqlet_fdr=0.05,
         n_leiden_runs=n_leiden,
         num_cores=num_cores,
+        pattern_type=pattern_type,
         verbose=verbose,
     )
     modiscolite.io.save_hdf5(output, pos_patterns, neg_patterns, window)
