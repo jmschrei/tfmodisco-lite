@@ -41,7 +41,6 @@ def polish_pattern(pattern, min_frac, min_num, track_set, flank, window_size, bg
 
 def _expand_seqlets_to_fill_pattern(pattern, track_set, left_flank_to_add,
 	right_flank_to_add):
-
 	new_seqlets = []
 	for seqlet in pattern.seqlets:
 		left_expansion = left_flank_to_add 
@@ -55,11 +54,11 @@ def _expand_seqlets_to_fill_pattern(pattern, track_set, left_flank_to_add,
 			end = seqlet.end + left_expansion
 		
 		if start >= 0 and end <= track_set.length:
-			seqlet = track_set.create_seqlets(
+			seqlets = track_set.create_seqlets(
 				seqlets=[core.Seqlet(example_idx=seqlet.example_idx,
-					start=start, end=end, is_revcomp=seqlet.is_revcomp)])[0]
-
-			new_seqlets.append(seqlet)
+					start=start, end=end, is_revcomp=seqlet.is_revcomp)])
+			if len(seqlets) > 0:
+				new_seqlets.append(seqlets[0])
 
 	if len(new_seqlets) > 0:
 		return core.SeqletSet(seqlets=new_seqlets)
@@ -299,7 +298,7 @@ def SimilarPatternsCollapser(patterns, track_set,
 
 				within_pattern1_sims = affinitymat.jaccard(
 					flat_pattern1_fwdseqdata[:, :, None], 
-					flat_pattern1_fwdseqdata[:, :, None])[:, :, 0].flatten()
+					flat_pattern1_fwdseqdata[:, :, None])[:, :, 0].flatten()	
 
 				auroc = roc_auc_score(
 					y_true=[0 for x in between_pattern_sims]
