@@ -68,37 +68,47 @@ def _expand_seqlets_to_fill_pattern(pattern, track_set, left_flank_to_add,
 
 
 def _align_patterns(parent_pattern, child_pattern, metric, min_overlap, 
-	transformer, include_hypothetical):
+	transformer, include_hypothetical, revcomp):
 
-	fwd_data_parent, rev_data_parent = util.get_2d_data_from_patterns(
+	fwd_data_parent = util.get_2d_data_from_patterns(
 		[parent_pattern], transformer=transformer,
-		include_hypothetical=include_hypothetical)
+		include_hypothetical=include_hypothetical, revcomp=False)
 
-	fwd_data_child, rev_data_child = util.get_2d_data_from_patterns(
-		[child_pattern], transformer=transformer,
-		include_hypothetical=include_hypothetical)
+	if revcomp:
+		fwd_data_child, rev_data_child = util.get_2d_data_from_patterns(
+			[child_pattern], transformer=transformer,
+			include_hypothetical=include_hypothetical, revcomp=True)
 
-	best_crossmetric, best_crossmetric_argmax = metric(fwd_data_child, 
-		fwd_data_parent, min_overlap).squeeze()
+		best_crossmetric, best_crossmetric_argmax = metric(fwd_data_child, 
+			fwd_data_parent, min_overlap).squeeze()
+		
+		best_crossmetric_rev, best_crossmetric_argmax_rev = metric(rev_data_child, 
+			fwd_data_parent, min_overlap).squeeze()
 
-	best_crossmetric_rev, best_crossmetric_argmax_rev = metric(rev_data_child, 
-		fwd_data_parent, min_overlap).squeeze()
-
-	if best_crossmetric_rev > best_crossmetric:
-		return int(best_crossmetric_argmax_rev), True, best_crossmetric_rev
+		if best_crossmetric_rev > best_crossmetric:
+			return int(best_crossmetric_argmax_rev), True, best_crossmetric_rev
+		else:
+			return int(best_crossmetric_argmax), False, best_crossmetric
 	else:
+		fwd_data_child = util.get_2d_data_from_patterns(
+			[child_pattern], transformer=transformer,
+			include_hypothetical=include_hypothetical, revcomp=False)
+
+		best_crossmetric, best_crossmetric_argmax = metric(fwd_data_child, 
+			fwd_data_parent, min_overlap).squeeze()
+		
 		return int(best_crossmetric_argmax), False, best_crossmetric
 
 
 def merge_in_seqlets_filledges(parent_pattern, seqlets_to_merge,
 	track_set, metric, min_overlap, transformer='l1', 
-	include_hypothetical=True):
+	include_hypothetical=True, revcomp=True):
 
 	parent_pattern = parent_pattern.copy()
 
 	for seqlet in seqlets_to_merge:
 		alnmt, revcomp_match, alnmt_score = _align_patterns(parent_pattern, 
-			seqlet, metric, min_overlap, transformer, include_hypothetical)
+			seqlet, metric, min_overlap, transformer, include_hypothetical, revcomp)
 		
 		if revcomp_match:
 			seqlet = seqlet.revcomp()
@@ -173,7 +183,7 @@ def _detect_spurious_merging(patterns, track_set, perplexity,
 	min_in_subcluster, min_overlap, prob_and_pertrack_sim_merge_thresholds,
 	prob_and_pertrack_sim_dealbreaker_thresholds,
 	min_frac, min_num, flank_to_add, window_size, bg_freq,
-	n_seeds, max_seqlets_subsample=1000):
+	n_seeds, revcomp, max_seqlets_subsample=1000):
 
 	to_return = []
 	for i, pattern in enumerate(patterns):
@@ -186,7 +196,7 @@ def _detect_spurious_merging(patterns, track_set, perplexity,
 				prob_and_pertrack_sim_merge_thresholds=prob_and_pertrack_sim_merge_thresholds,
 				prob_and_pertrack_sim_dealbreaker_thresholds=prob_and_pertrack_sim_dealbreaker_thresholds,
 				min_frac=min_frac, min_num=min_num, flank_to_add=flank_to_add, window_size=window_size, 
-				bg_freq=bg_freq, max_seqlets_subsample=1000)
+				bg_freq=bg_freq, max_seqlets_subsample=max_seqlets_subsample, revcomp=revcomp)
 
 			to_return.extend(refined_subpatterns[0]) 
 		else:
@@ -197,13 +207,13 @@ def _detect_spurious_merging(patterns, track_set, perplexity,
 				prob_and_pertrack_sim_merge_thresholds=prob_and_pertrack_sim_merge_thresholds,
 				prob_and_pertrack_sim_dealbreaker_thresholds=prob_and_pertrack_sim_dealbreaker_thresholds,
 				min_frac=min_frac, min_num=min_num, flank_to_add=flank_to_add, window_size=window_size, 
-				bg_freq=bg_freq, max_seqlets_subsample=1000)
+				bg_freq=bg_freq, max_seqlets_subsample=max_seqlets_subsample, revcomp=revcomp)
 
 def SimilarPatternsCollapser(patterns, track_set,
 	min_overlap, prob_and_pertrack_sim_merge_thresholds,
 	prob_and_pertrack_sim_dealbreaker_thresholds,
 	min_frac, min_num, flank_to_add, window_size, bg_freq,
-	max_seqlets_subsample=1000):
+	revcomp, max_seqlets_subsample=1000):
 	patterns = [x.copy() for x in patterns]
 
 	merge_hierarchy_levels = []        
@@ -256,7 +266,8 @@ def SimilarPatternsCollapser(patterns, track_set,
 						metric=affinitymat.pearson_correlation, 
 						min_overlap=min_overlap, 
 						include_hypothetical=False,
-						transformer='magnitude') 
+						transformer='magnitude',
+						revcomp=revcomp)
 
 				pairwise_sims[i, j] = aligner_sim
 
@@ -281,11 +292,11 @@ def SimilarPatternsCollapser(patterns, track_set,
 				pattern2_shifted_seqlets = track_set.create_seqlets(
 					seqlets=pattern2_coords)
 
-				pattern1_fwdseqdata, _ =\
-				  util.get_2d_data_from_patterns(subsample_patterns[i].seqlets)
+				pattern1_fwdseqdata =\
+				  util.get_2d_data_from_patterns(subsample_patterns[i].seqlets, revcomp=False)
 
-				pattern2_fwdseqdata, _ =\
-				  util.get_2d_data_from_patterns(pattern2_shifted_seqlets)
+				pattern2_fwdseqdata =\
+				  util.get_2d_data_from_patterns(pattern2_shifted_seqlets, revcomp=False)
 
 				#Flatten, compute continjacc sim at this alignment
 				flat_pattern1_fwdseqdata = pattern1_fwdseqdata.reshape(
@@ -384,7 +395,8 @@ def SimilarPatternsCollapser(patterns, track_set,
 					metric=affinitymat.pearson_correlation,
 					min_overlap=min_overlap,
 					transformer='magnitude',
-					track_set=track_set)
+					track_set=track_set,
+					revcomp=revcomp)
 
 				new_pattern = polish_pattern(new_pattern, min_frac=min_frac, 
 					min_num=min_num, track_set=track_set, flank=flank_to_add, 
@@ -454,7 +466,7 @@ def SimilarPatternsCollapser(patterns, track_set,
 						old_pattern_node_found = True 
 				if (old_pattern_node_found==False):
 				   next_level_nodes.append(
-					PatternMergeHierarchyNode(frontier_pattern)) 
+					PatternMergeHierarchyNode(frontier_pattern))
 
 			for next_level_node in next_level_nodes:
 				#iterate over all the old patterns and their new parent

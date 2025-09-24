@@ -88,7 +88,7 @@ def _filter_patterns(patterns, min_seqlet_support, window_size,
 
 def _patterns_from_clusters(seqlets, track_set, min_overlap,
 	min_frac, min_num, flank_to_add, window_size, bg_freq, cluster_indices, 
-	track_sign):
+	track_sign, revcomp):
 
 	seqlet_sort_metric = lambda x: -np.sum(np.abs(x.contrib_scores))
 	num_clusters = max(cluster_indices+1)
@@ -106,7 +106,7 @@ def _patterns_from_clusters(seqlets, track_set, min_overlap,
 			pattern = aggregator.merge_in_seqlets_filledges(
 				parent_pattern=pattern, seqlets_to_merge=sorted_seqlets[1:],
 				track_set=track_set, metric=affinitymat.jaccard,
-				min_overlap=min_overlap)
+				min_overlap=min_overlap, revcomp=revcomp)
 
 		pattern = aggregator.polish_pattern(pattern, min_frac=min_frac, 
 			min_num=min_num, track_set=track_set, flank=flank_to_add, 
@@ -161,9 +161,9 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 	final_flank_to_add=0,
 	prob_and_pertrack_sim_merge_thresholds=[(0.8,0.8), (0.5, 0.85), (0.2, 0.9)],
 	prob_and_pertrack_sim_dealbreaker_thresholds=[(0.4, 0.75), (0.2,0.8), (0.1, 0.85), (0.0,0.9)],
-	subcluster_perplexity=50, merging_max_seqlets_subsample=300,
+	subcluster_perplexity=50, merging_max_seqlets_subsample=1000,
 	final_min_cluster_size=20,min_ic_in_window=0.6, min_ic_windowsize=6,
-	ppm_pseudocount=0.001):
+	ppm_pseudocount=0.001, revcomp=True):
 
 	bg_freq = np.mean([seqlet.sequence for seqlet in seqlets], axis=(0, 1)) 
 
@@ -178,12 +178,12 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 
 		# Step 1: Generate coarse resolution
 		coarse_affmat_nn, seqlet_neighbors = affinitymat.cosine_similarity_from_seqlets(
-			seqlets=seqlets, n_neighbors=nearest_neighbors_to_compute, sign=track_signs)
+			seqlets=seqlets, n_neighbors=nearest_neighbors_to_compute, sign=track_signs, revcomp=revcomp)
 
 		# Step 2: Generate fine representation
 		fine_affmat_nn = affinitymat.jaccard_from_seqlets(
 			seqlets=seqlets, seqlet_neighbors=seqlet_neighbors,
-			min_overlap=min_overlap_while_sliding)
+			min_overlap=min_overlap_while_sliding, revcomp=revcomp)
 
 		if round_idx == 0:
 			filtered_seqlets, seqlet_neighbors, filtered_affmat_nn = (
@@ -222,7 +222,8 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 			window_size=trim_to_window_size, 
 			bg_freq=bg_freq, 
 			cluster_indices=cluster_indices, 
-			track_sign=track_signs)
+			track_sign=track_signs,
+			revcomp=revcomp)
 
 		#obtain unique seqlets from adjusted motifs
 		seqlets = list(dict([(y.string, y)
@@ -240,7 +241,7 @@ def seqlets_to_patterns(seqlets, track_set, track_signs=None,
 		flank_to_add=initial_flank_to_add,
 		window_size=trim_to_window_size, bg_freq=bg_freq,
 		max_seqlets_subsample=merging_max_seqlets_subsample,
-		n_seeds=n_leiden_runs)
+		n_seeds=n_leiden_runs, revcomp=revcomp)
 
 	#Now start merging patterns 
 	merged_patterns = sorted(merged_patterns, key=lambda x: -len(x.seqlets))
@@ -275,9 +276,9 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 	initial_flank_to_add=10, final_flank_to_add=0,
 	prob_and_pertrack_sim_merge_thresholds=[(0.8,0.8), (0.5, 0.85), (0.2, 0.9)],
 	prob_and_pertrack_sim_dealbreaker_thresholds=[(0.4, 0.75), (0.2,0.8), (0.1, 0.85), (0.0,0.9)],
-	subcluster_perplexity=50, merging_max_seqlets_subsample=300,
+	subcluster_perplexity=50, merging_max_seqlets_subsample=1000,
 	final_min_cluster_size=20, min_ic_in_window=0.6, min_ic_windowsize=6,
-	ppm_pseudocount=0.001, verbose=False):
+	ppm_pseudocount=0.001, revcomp=True, verbose=False):
 
 	contrib_scores = np.multiply(one_hot, hypothetical_contribs)
 
@@ -335,7 +336,8 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 			final_min_cluster_size=final_min_cluster_size,
 			min_ic_in_window=min_ic_in_window,
 			min_ic_windowsize=min_ic_windowsize,
-			ppm_pseudocount=ppm_pseudocount)
+			ppm_pseudocount=ppm_pseudocount,
+			revcomp=revcomp)
 	else:
 		pos_patterns = None
 
@@ -365,7 +367,8 @@ def TFMoDISco(one_hot, hypothetical_contribs, sliding_window_size=21,
 			final_min_cluster_size=final_min_cluster_size,
 			min_ic_in_window=min_ic_in_window,
 			min_ic_windowsize=min_ic_windowsize,
-			ppm_pseudocount=ppm_pseudocount)
+			ppm_pseudocount=ppm_pseudocount,
+			revcomp=revcomp)
 	else:
 		neg_patterns = None
 
