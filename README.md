@@ -1,6 +1,9 @@
 # tfmodisco-lite
 
-> **Warning**
+> [!IMPORTANT]
+> tfmodisco-lite has been merged into the [official TF-MoDISco repository](https://github.com/kundajelab/tfmodisco). Please see that for future development.
+
+> [!WARNING]
 > tfmodisco-lite v2.0.0 and above may produce slightly different results from the original TF-MoDISCo code as minor bugs are fixed and some speed improvements required swapping sorting algorithms.
 
 TF-MoDISco is a biological motif discovery algorithm that differentiates itself by using attribution scores from a machine learning model, in addition to the sequence itself, to guide motif discovery. Using the attribution scores, as opposed to the signal being predicted by the machine learning model (e.g. ChIP-seq peaks), can be beneficial because the attributions fine-map the specific sequence drivers of biology. Although in many of our examples this model is [BPNet](https://www.nature.com/articles/s41588-021-00782-6) and the attributions are from [DeepLIFT/DeepSHAP](https://captum.ai/api/deep_lift_shap.html), there is no limit on what attribution algorithm is used, or what model the attributions come from. This means that, for example, one would use [attributions from a gapped k-mer SVM](https://academic.oup.com/bioinformatics/article/35/14/i173/5529147?login=false) just as easily as [DeepSHAP on a convolutional neural network that predicts enhancer activity](https://www.nature.com/articles/s41588-022-01048-5). All that's needed to run TF-MoDISco are sequences and their corresponding per-position attribution scores.
