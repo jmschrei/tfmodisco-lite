@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "faster-modisco-lite"
+version = "2.4.0"
+description = "Transcription Factor MOtif Discovery from Importance SCOres - lite"
+readme = "README.md"
+requires-python = ">=3.7"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Muhammed Hasan Celik", email = "muhammedhasancelik@gmail.com" },
+  { name = "Jacob Schreiber" },
+]
+dependencies = [
+  "click",
+  "numpy>=1.21.5",
+  "scipy>=1.6.2",
+  "numba>=0.53.1",
+  "scikit-learn>=1.0.2",
+  "leidenalg>=0.8.10",
+  "igraph>=0.9.11",
+  "tqdm>=4.38.0",
+  "pandas>=1.4.3",
+  "logomaker>=0.8",
+  "h5py>=3.7.0",
+  "memelite",
+  "joblib",
+  "numba-progress",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "pytest-cov",
+]
+dev = [
+  "pytest",
+  "pytest-cov",
+]
+
+[project.scripts]
+modisco = "modiscolite.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/MuhammedHasan/tfmodisco-lite"
+
+[tool.setuptools]
+packages = ["modiscolite"]
