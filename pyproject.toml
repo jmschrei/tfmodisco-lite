@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "faster-modisco-lite"
-version = "2.4.0"
+version = "3.0.0"
 description = "Transcription Factor MOtif Discovery from Importance SCOres - lite"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -31,20 +31,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = [
-  "pytest",
-  "pytest-cov",
-]
-dev = [
-  "pytest",
-  "pytest-cov",
-]
+test = ["pytest", "pytest-cov"]
+dev = ["pytest", "pytest-cov"]
 
 [project.scripts]
-modisco = "modiscolite.cli:cli"
+fastermodisco = "fastermodiscolite.cli:cli"
 
 [project.urls]
 Homepage = "https://github.com/MuhammedHasan/tfmodisco-lite"
 
 [tool.setuptools]
-packages = ["modiscolite"]
+packages = ["fastermodiscolite"]

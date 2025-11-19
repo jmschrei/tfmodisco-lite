@@ -2,7 +2,7 @@ import random
 import h5py
 import numpy as np
 from click.testing import CliRunner
-from modiscolite.cli import motifs
+from fastermodiscolite.cli import motifs
 from conftest import data_ohe_hyps
 
 

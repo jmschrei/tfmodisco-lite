@@ -8,8 +8,8 @@ import click
 import h5py
 import numpy as np
 
-import modiscolite
-from modiscolite.util import calculate_window_offsets, MemeDataType
+import fastermodiscolite
+from fastermodiscolite.util import calculate_window_offsets, MemeDataType
 
 
 def _split_chroms(chroms: str) -> Union[List[str], Literal["*"]]:
@@ -200,7 +200,7 @@ def motifs(
             f"Window ({window}) cannot be longer than the sequence length ({sequences.shape[1]})."
         )
 
-    pos_patterns, neg_patterns = modiscolite.tfmodisco.TFMoDISco(
+    pos_patterns, neg_patterns = fastermodiscolite.tfmodisco.TFMoDISco(
         one_hot=sequences.astype("float32"),
         hypothetical_contribs=attributions.astype("float32"),
         max_seqlets_per_metacluster=max_seqlets,
@@ -216,7 +216,7 @@ def motifs(
         stranded=stranded,
         verbose=verbose,
     )
-    modiscolite.io.save_hdf5(output, pos_patterns, neg_patterns, window)
+    fastermodiscolite.io.save_hdf5(output, pos_patterns, neg_patterns, window)
 
 
 @cli.command(
@@ -284,7 +284,7 @@ def report(
     h5_path, output, write_tomtom, suffix, meme_db, n_matches, lite, num_cores, verbose
 ):
     """Generate an interactive HTML motif report."""
-    modiscolite.report.report_motifs(
+    fastermodiscolite.report.report_motifs(
         h5_path,
         output,
         img_path_suffix=suffix,
@@ -315,7 +315,7 @@ def report(
 )
 def convert(h5_path, output):
     """Convert old HDF5 to new format."""
-    modiscolite.io.convert(h5_path, output)
+    fastermodiscolite.io.convert(h5_path, output)
 
 
 @cli.command(help="Convert a new HDF5 file back to the legacy format.")
@@ -336,7 +336,7 @@ def convert(h5_path, output):
 )
 def convert_backward(h5_path, output):
     """Convert new HDF5 to original legacy format."""
-    modiscolite.io.convert_new_to_old(h5_path, output)
+    fastermodiscolite.io.convert_new_to_old(h5_path, output)
 
 
 @cli.command(help="Write a MEME file from a results HDF5.")
@@ -371,7 +371,7 @@ The options are as follows:
 )
 @click.option("-q", "--quiet", is_flag=True, help="Suppress output to stdout.")
 def meme(h5_path, datatype, output, quiet):
-    modiscolite.io.write_meme_from_h5(h5_path, datatype, output, quiet)
+    fastermodiscolite.io.write_meme_from_h5(h5_path, datatype, output, quiet)
 
 
 @cli.command(help="Output a BED file of seqlets from a modisco results file to stdout (default) and/or to a file (if specified).")
@@ -427,7 +427,7 @@ def seqlet_bed(
     windowsize: Optional[int],
 ) -> None:
     """Output a BED file of seqlets from a modisco results file."""
-    modiscolite.io.write_bed_from_h5(
+    fastermodiscolite.io.write_bed_from_h5(
         h5_path, peaksfile, output, chroms, windowsize, quiet
     )
 
@@ -492,6 +492,6 @@ def seqlet_fasta(
     quiet: bool,
     windowsize: Optional[int],
 ) -> None:
-    modiscolite.io.write_fasta_from_h5(
+    fastermodiscolite.io.write_fasta_from_h5(
         h5_path, peaksfile, sequences, output, chroms, windowsize, quiet
     )
