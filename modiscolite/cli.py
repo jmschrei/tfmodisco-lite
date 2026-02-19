@@ -55,7 +55,7 @@ def cli() -> None:
     "--max-seqlets",
     type=int,
     required=True,
-    help="The maximum number of seqlets per metacluster."
+    help="The maximum number of seqlets considered per type (positive, negative); cut off in order of seqlets identified (follows order of input regions; then in descending order of seqlet's total attribution score per region)."
 )
 @click.option(
     "-l",
