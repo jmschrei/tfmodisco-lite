@@ -34,16 +34,18 @@ Related tools:
 
 You can install TF-MoDISco using `pip install modisco`
 
-## Running TF-MoDISco
+## Running TF-MoDISco (test)
 
 You can run TF-MoDISco using the command line tool `modisco` which comes with the TF-MoDISco installation. This tool allows you to run TF-MoDISco on a set of sequences and corresponding attributions, and then to generate a report (like the one seen above) for the output generated from the first step.
 
 `modisco motifs -s ohe.npz -a shap.npz -n 2000 -o modisco_results.h5`
 
-This command will run modisco on the one-hot encoded sequences in `ohe.npz`, use the attributions from `shap.npz`, use a maximum of 2000 seqlets per metacluster (this is low, but a good starting point for testing the algorithm on your own data), and will output the results to `modisco_results.h5`. The one-hot encoded sequences and attributions are assumed to be in length-last format, i.e., have the shape (# examples, 4, sequence length). Note that you can also use `npy` files if you don't want to use compressed data for some reason. 
+This command will run modisco on the one-hot encoded sequences in `ohe.npz`, use the attributions from `shap.npz`, use a maximum of 2000 positive/negative seqlets (this is low, but a good starting point for testing the algorithm on your own data), and will output the results to `modisco_results.h5`. The one-hot encoded sequences and attributions are assumed to be in length-last format, i.e., have the shape (# examples, 4, sequence length). Note that you can also use `npy` files if you don't want to use compressed data for some reason. 
 
 > [!TIP]
-> By default, TF-MoDISco uses a window size of 400 around the center of each input region. You can override this default with `-w`.
+> **Window size:** By default, TF-MoDISco uses a window size of 400 around the center of each input region. You can override this default with `-w`.
+>
+> **Max seqlets:** Seqlets will generally follow the order of the input regions, and hence can be biased by the order in which the regions are provided. `max-seqlets` takes top seqlets in order that they are identified, where identification occurs per region (in order that they are inputted), then in desending order of each seqlet's attribution score per region. For unbiased sampling, shuffle the input regions beforehand. Keep the shuffled regions to keep track of the absolute instance positions.
 
 The output saved in `modisco_results.h5` will include all of the patterns and has the following struture:
 
