@@ -45,7 +45,7 @@ This command will run modisco on the one-hot encoded sequences in `ohe.npz`, use
 > [!TIP]
 > **Window size:** By default, TF-MoDISco uses a window size of 400 around the center of each input region. You can override this default with `-w`.
 >
-> **Max seqlets:** Seqlets will generally follow the order of the input regions, and hence can be biased by the order in which the regions are provided. `max-seqlets` takes top seqlets in order that they are identified, where identification occurs per region (in order that they are inputted), then in desending order of each seqlet's attribution score per region. For unbiased sampling, shuffle the input regions beforehand. Keep the shuffled regions to keep track of the absolute instance positions.
+> **Max seqlets:** Seqlets will generally follow the order of the input regions, and hence can be biased by the order in which the regions are provided. `-n` takes top seqlets in order that they are identified, where identification occurs per region (in order that they are inputted), then in desending order of each seqlet's attribution score per region. For unbiased sampling, shuffle the input regions beforehand. Keep the shuffled regions to keep track of the absolute instance positions.
 
 The output saved in `modisco_results.h5` will include all of the patterns and has the following struture:
 
