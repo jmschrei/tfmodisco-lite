@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   # No branch filter, so pull requests stacked on another branch are tested too.
   pull_request:
 
