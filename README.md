@@ -1,5 +1,8 @@
 # TF-MoDISco
 
+> [!IMPORTANT]
+> tfmodisco-lite has been merged into the [official TF-MoDISco repository](https://github.com/kundajelab/tfmodisco). Please see that for future development.
+
 TF-MoDISco (**T**ranscription **F**actor **Mo**tif **D**iscovery from **I**mportance **Sco**res) is an algorithm for discovering sequence motifs from machine-learning-model-derived importance scores. Unlike traditional motif discovery methods that rely solely on sequence enrichment, TF-MoDISco leverages context-aware importance scores to identify patterns.
 
 These importance scores can be generated using various attribution methods, such as DeepLIFT or SHAP, applied to models like BPNet. The algorithm identifies high-importance regions (seqlets), clusters them into motifs, and provides a report comparing discovered motifs to known databases.
