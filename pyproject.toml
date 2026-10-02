@@ -3,7 +3,7 @@ requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "modisco"
+name = "modisco-lite"
 version = "2.6.0"
 description = "Transcription Factor MOtif Discovery from Importance SCOres"
 readme = "README.md"
@@ -34,8 +34,8 @@ dependencies = [
 test = ["pytest", "pytest-cov", "leidenalg==0.11.0"]
 
 [project.urls]
-Homepage = "https://github.com/kundajelab/tfmodisco"
-Repository = "https://github.com/kundajelab/tfmodisco"
+Homepage = "https://github.com/jmschrei/tfmodisco-lite"
+Repository = "https://github.com/jmschrei/tfmodisco-lite"
 
 [project.scripts]
 modisco = "modiscolite.cli:cli"
