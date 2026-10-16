@@ -2,7 +2,7 @@
 Release History
 ===============
 
-Version 2.6.0
+Version 3.0.0
 ==============
 
 
@@ -18,13 +18,32 @@ modisco
 	CLI tests are deselected by default; run them with `pytest -m cmd`.
 
 	- GitHub Actions runs the full test suite, including the CLI tests, on
-	Python 3.9 through 3.13 for every pull request and push to master.
+	Python 3.9 through 3.13 for every pull request and push to main.
+
+	- `modisco motifs` is faster: 1,745 s to 119 s on a 50,000-seqlet
+	benchmark at 16 threads, 7 to 18 times faster on the benchmarks in #78 run
+	with `-n 10000` or `-n 20000`, and 1.6 to 5.4 times faster on those run with
+	`-n 2000`. Leiden seeds, subclustering, pattern building, the
+	collapser's pair statistics and the negative metacluster run in forked
+	processes that share numba's thread count; numba kernels compile in
+	background processes; and the cosine kNN, Jaccard, density adaptation,
+	correlation filter and seqlet extraction steps are rewritten. leidenalg is
+	pinned to 0.11.0, since 0.11 and 0.12 can cluster the same input
+	differently (kundajelab/tfmodisco#136). Under that pin outputs are
+	unchanged, except where two Leiden seeds tie exactly in modularity: the
+	Leiden graph now adds each undirected edge once with twice its weight,
+	rather than twice, which can break such a tie the other way. In #78's
+	comparison of 1,874 runs, 3 numbered two equal-size subpatterns the other
+	way round.
 
 	- Process scheduling and background compilation respect runtime thread
 	limits set with numba.set_num_threads(). Explicit worker budgets are retained.
+	Thanks @chang-m-yun!
 
 	- Require Python 3.9 or newer, matching the pinned Leiden/igraph dependencies
-	and the process APIs used by the optimized pipeline.
+	and the process APIs used by the optimized pipeline. Python 3.7 and 3.8 are
+	no longer supported.
+	Thanks @chang-m-yun!
 
 
 
