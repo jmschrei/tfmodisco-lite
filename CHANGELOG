@@ -11,6 +11,11 @@ modisco
 
 	- CLI rewritten in click
 	- Unit tests
+	- Long option names use hyphens rather than underscores, and the old
+	spellings are rejected: `--max-seqlets`, `--n-leiden`, `--trim-size`,
+	`--seqlet-flank-size`, `--initial-flank-to-add` and `--final-flank-to-add`
+	in `motifs`, and `--meme-db` and `--n-matches` in `report`. Short options
+	(`-n`, `-l`, `-t`, ...) are unchanged.
 	Thanks @MuhammedHasan!
 
 	- Unit tests now cover every module, run on a committed set of real
