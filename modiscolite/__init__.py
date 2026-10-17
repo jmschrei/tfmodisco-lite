@@ -13,7 +13,7 @@ from . import meme_writer
 from . import bed_writer
 from . import fasta_writer
 
-__version__ = '2.5.2'
+__version__ = '3.0.0'
 
 
 # The report modules load matplotlib, pandas, logomaker, memelite and jinja2,
